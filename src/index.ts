@@ -15,7 +15,7 @@ export function inlineMarkdown(filePath: string): string {
 
   const fragmentFileNames = matches.map(match => match.slice(9, -3))
   const importedFragments = fragmentFileNames.map(f =>
-    fs.readFileSync(path.resolve(path.join(dirname, f)), 'utf8'),
+    inlineMarkdown(path.resolve(path.join(dirname, f)))
   )
 
   const output = matches.reduce(
@@ -41,8 +41,6 @@ export async function processDir(
 
   const readmes = await recursive(inputDir, [ignoreFunc])
 
-  console.log(readmes)
-
   const outputList = readmes.map(readme => ({
     body: inlineMarkdown(readme),
     filePath: path.join(outputDir, path.relative(inputDir, readme)),
@@ -52,13 +50,16 @@ export async function processDir(
     // create output folder if it doesn't exist
     mkdirp.sync(path.dirname(filePath))
 
+    // make sure to delete file in case of casing renames (OSX limitation)
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath)
+    }
+
     fs.writeFileSync(filePath, body, {
       encoding: 'utf8',
     })
 
     console.log(`Created ${path.relative(outputDir, filePath)}`)
   })
-
-  console.log(outputList)
 }
 
