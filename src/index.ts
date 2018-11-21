@@ -9,6 +9,10 @@ export function inlineMarkdown(filePath: string): string {
 
   const re = RegExp(/\_\_INLINE\(.*\)\_\_/g)
   const matches = body.match(re)
+  if (!matches) {
+    return body
+  }
+
   const fragmentFileNames = matches.map(match => match.slice(9, -3))
   const importedFragments = fragmentFileNames.map(f =>
     fs.readFileSync(path.resolve(path.join(dirname, f)), 'utf8'),
@@ -27,15 +31,17 @@ export async function processDir(
   outputDir: string,
 ): Promise<void> {
   const ignoreFunc = (file: string, stats: fs.Stats): boolean => {
-    console.log(file)
     const basename = path.basename(file).toLowerCase()
     return (
       basename === 'node_modules' ||
+      basename === '.git' ||
       (!stats.isDirectory() && basename !== 'readme.md')
     )
   }
 
   const readmes = await recursive(inputDir, [ignoreFunc])
+
+  console.log(readmes)
 
   const outputList = readmes.map(readme => ({
     body: inlineMarkdown(readme),
@@ -56,7 +62,3 @@ export async function processDir(
   console.log(outputList)
 }
 
-processDir(
-  '/Users/nikolasburk/prisma/github/inline-markdown',
-  '/Users/nikolasburk/prisma/github/inline-markdown/output',
-).catch(x => console.error(x))
